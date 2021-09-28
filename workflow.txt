@@ -1,0 +1,20 @@
+# Bot
+    - Bots send hearbeats to the orchestrator
+    - On bot start, ask orchestrator for a client-id, use this for all
+      communication with orch
+
+# Orchestrator
+    - On new bot join:
+        - Try to rebalance channels between all bots to include the new one
+    - High Availability?
+        - Assign multiple bots to a single channel & use the msg-id as an
+          idempotency key on consumers
+        - Rebalancing:
+            - Add channel to another bot before leaving channel on another
+              (We'd rather have extra messages than miss some)
+
+# Considerations
+    - We need to have some form of weightings or metrics to say how many
+      messages a bot is processing so we know how to balance channels between bots
+    - Where are we storing the orch data so it's not just in-memory?
+    - gRPC channel back to each client?
