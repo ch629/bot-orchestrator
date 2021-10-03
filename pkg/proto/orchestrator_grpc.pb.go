@@ -18,8 +18,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type OrchestratorClient interface {
-	Join(ctx context.Context, in *BotJoinRequest, opts ...grpc.CallOption) (*BotJoinResponse, error)
-	JoinStream(ctx context.Context, in *BotJoinResponse, opts ...grpc.CallOption) (Orchestrator_JoinStreamClient, error)
+	JoinStream(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (Orchestrator_JoinStreamClient, error)
 }
 
 type orchestratorClient struct {
@@ -30,16 +29,7 @@ func NewOrchestratorClient(cc grpc.ClientConnInterface) OrchestratorClient {
 	return &orchestratorClient{cc}
 }
 
-func (c *orchestratorClient) Join(ctx context.Context, in *BotJoinRequest, opts ...grpc.CallOption) (*BotJoinResponse, error) {
-	out := new(BotJoinResponse)
-	err := c.cc.Invoke(ctx, "/Orchestrator/Join", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *orchestratorClient) JoinStream(ctx context.Context, in *BotJoinResponse, opts ...grpc.CallOption) (Orchestrator_JoinStreamClient, error) {
+func (c *orchestratorClient) JoinStream(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (Orchestrator_JoinStreamClient, error) {
 	stream, err := c.cc.NewStream(ctx, &Orchestrator_ServiceDesc.Streams[0], "/Orchestrator/JoinStream", opts...)
 	if err != nil {
 		return nil, err
@@ -75,8 +65,7 @@ func (x *orchestratorJoinStreamClient) Recv() (*StreamPayload, error) {
 // All implementations must embed UnimplementedOrchestratorServer
 // for forward compatibility
 type OrchestratorServer interface {
-	Join(context.Context, *BotJoinRequest) (*BotJoinResponse, error)
-	JoinStream(*BotJoinResponse, Orchestrator_JoinStreamServer) error
+	JoinStream(*EmptyMessage, Orchestrator_JoinStreamServer) error
 	mustEmbedUnimplementedOrchestratorServer()
 }
 
@@ -84,10 +73,7 @@ type OrchestratorServer interface {
 type UnimplementedOrchestratorServer struct {
 }
 
-func (UnimplementedOrchestratorServer) Join(context.Context, *BotJoinRequest) (*BotJoinResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Join not implemented")
-}
-func (UnimplementedOrchestratorServer) JoinStream(*BotJoinResponse, Orchestrator_JoinStreamServer) error {
+func (UnimplementedOrchestratorServer) JoinStream(*EmptyMessage, Orchestrator_JoinStreamServer) error {
 	return status.Errorf(codes.Unimplemented, "method JoinStream not implemented")
 }
 func (UnimplementedOrchestratorServer) mustEmbedUnimplementedOrchestratorServer() {}
@@ -103,26 +89,8 @@ func RegisterOrchestratorServer(s grpc.ServiceRegistrar, srv OrchestratorServer)
 	s.RegisterService(&Orchestrator_ServiceDesc, srv)
 }
 
-func _Orchestrator_Join_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BotJoinRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(OrchestratorServer).Join(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/Orchestrator/Join",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OrchestratorServer).Join(ctx, req.(*BotJoinRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _Orchestrator_JoinStream_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(BotJoinResponse)
+	m := new(EmptyMessage)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
@@ -148,12 +116,7 @@ func (x *orchestratorJoinStreamServer) Send(m *StreamPayload) error {
 var Orchestrator_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "Orchestrator",
 	HandlerType: (*OrchestratorServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "Join",
-			Handler:    _Orchestrator_Join_Handler,
-		},
-	},
+	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "JoinStream",

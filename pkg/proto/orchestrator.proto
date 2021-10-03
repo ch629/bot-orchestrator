@@ -1,10 +1,8 @@
-syntax = "proto3";
+syntax = "proto3"; 
 option go_package = "/proto";
 
 service Orchestrator{
-    rpc Join(BotJoinRequest) returns (BotJoinResponse){}
-
-    rpc JoinStream(BotJoinResponse) returns (stream StreamPayload){}
+    rpc JoinStream(EmptyMessage) returns (stream StreamPayload){}
 }
 
 message StreamPayload{
@@ -16,9 +14,5 @@ message StreamPayload{
     string channel = 2;
 }
 
-message BotJoinRequest{}
-
-message BotJoinResponse{
-    string id = 1;
-}
+message EmptyMessage{}
 
