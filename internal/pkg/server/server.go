@@ -6,13 +6,14 @@ import (
 	"net"
 
 	"github.com/ch629/irc-bot-orchestrator/internal/pkg/bots"
+	proto2 "github.com/ch629/irc-bot-orchestrator/internal/pkg/proto"
 	"github.com/ch629/irc-bot-orchestrator/pkg/proto"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
 
-func New(logger *zap.Logger, botsService *bots.Service) *server {
+func New(logger *zap.Logger, botsService bots.Service) *server {
 	return &server{
 		logger:      logger,
 		botsService: botsService,
@@ -38,23 +39,21 @@ func (s *server) Start(ctx context.Context, port int) error {
 }
 
 type server struct {
-	botsService *bots.Service
+	botsService bots.Service
 	logger      *zap.Logger
 
 	proto.UnimplementedOrchestratorServer
 }
 
-// TODO: a permanent gRPC stream from bots to this orchestrator seems like it's not the best approach, but I can't think of an alternative right now
 // TODO: Should this be bidirectional, so the bots can send metrics back to us?
 func (s *server) JoinStream(_ *proto.EmptyMessage, resp proto.Orchestrator_JoinStreamServer) error {
-	id := s.botsService.Join(Response{resp})
+	ctx, id := s.botsService.Join(resp.Context(), proto2.NewClient(resp))
 	resp.SendHeader(metadata.Pairs("bot_id", id.String()))
 
 	defer func() {
 		s.botsService.Leave(id)
 	}()
 
-	<-resp.Context().Done()
-	s.logger.Info("exiting")
+	<-ctx.Done()
 	return nil
 }

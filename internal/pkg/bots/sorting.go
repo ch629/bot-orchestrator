@@ -1,6 +1,6 @@
 package bots
 
-type channelSort []*BotState
+type channelSort []*botState
 
 func (b channelSort) Len() int {
 	return len(b)

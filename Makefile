@@ -9,3 +9,9 @@ build:
 
 run: build
 	./app
+
+generate:
+	go generate ./...
+
+test:
+	go test ./...

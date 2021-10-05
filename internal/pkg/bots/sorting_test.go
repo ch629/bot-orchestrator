@@ -1,0 +1,32 @@
+package bots
+
+import (
+	"sort"
+	"testing"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+)
+
+func Test_channelSort(t *testing.T) {
+	botOne := &botState{
+		id: uuid.New(),
+		channels: map[string]struct{}{
+			"one": {},
+		},
+	}
+	botTwo := &botState{
+		id: uuid.New(),
+		channels: map[string]struct{}{
+			"one": {},
+			"two": {},
+		},
+	}
+	originalBots := []*botState{botOne, botTwo}
+	sortedBots := []*botState{botOne, botTwo}
+	sort.Sort(channelSort(sortedBots))
+	assert.Equal(t, []*botState{
+		originalBots[1],
+		originalBots[0],
+	}, []*botState(sortedBots))
+}
