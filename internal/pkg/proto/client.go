@@ -2,6 +2,7 @@ package proto
 
 import "github.com/ch629/irc-bot-orchestrator/pkg/proto"
 
+// BotClient is a client to send messages to an individual bot
 //go:generate mockery --name BotClient --disable-version-string
 type BotClient interface {
 	SendJoinChannel(channel string) error

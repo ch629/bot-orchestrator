@@ -26,7 +26,7 @@ func Test_channelSort(t *testing.T) {
 	sortedBots := []*botState{botOne, botTwo}
 	sort.Sort(channelSort(sortedBots))
 	assert.Equal(t, []*botState{
-		originalBots[1],
 		originalBots[0],
+		originalBots[1],
 	}, []*botState(sortedBots))
 }

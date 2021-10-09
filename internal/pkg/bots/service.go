@@ -14,45 +14,51 @@ import (
 )
 
 var (
-	ErrNoBots       = errors.New("no bots")
 	ErrBotNotExist  = errors.New("bot does not exist")
 	ErrInChannel    = errors.New("already in channel")
 	ErrNotInChannel = errors.New("not in channel")
 )
 
 //go:generate mockery --name Service --disable-version-string
-type Service interface {
-	Join(ctx context.Context, botClient proto.BotClient) (context.Context, uuid.UUID)
-	Leave(id uuid.UUID)
-	RemoveBot(id uuid.UUID) error
-	JoinChannel(channel string) error
-	LeaveChannel(channel string) error
-	BotInfo() []BotInfo
-}
+type (
+	// Service is an interface for bot related functionality
+	Service interface {
+		Join(ctx context.Context, botClient proto.BotClient) (context.Context, uuid.UUID)
+		Leave(id uuid.UUID)
+		RemoveBot(id uuid.UUID) error
+		JoinChannel(channel string) error
+		LeaveChannel(channel string) error
+		BotInfo() []BotInfo
+		ChannelInfo() map[string][]uuid.UUID
+		DanglingChannels() []string
+	}
 
-// TODO: RWMutex on channels?
-type service struct {
-	logger   *zap.Logger
-	bots     map[uuid.UUID]*botState
-	channels map[string][]uuid.UUID
-	mux      sync.Mutex
-}
+	// TODO: RWMutex on channels?
+	service struct {
+		logger   *zap.Logger
+		bots     map[uuid.UUID]*botState
+		channels map[string][]uuid.UUID
+		mux      sync.Mutex
+	}
 
-type botState struct {
-	logger     *zap.Logger
-	mux        sync.Mutex
-	id         uuid.UUID
-	channels   map[string]struct{}
-	client     proto.BotClient
-	ctx        context.Context
-	cancelFunc context.CancelFunc
-}
+	botState struct {
+		logger     *zap.Logger
+		mux        sync.Mutex
+		id         uuid.UUID
+		channels   map[string]struct{}
+		client     proto.BotClient
+		ctx        context.Context
+		cancelFunc context.CancelFunc
+	}
 
-type BotInfo struct {
-	ID       uuid.UUID `json:"id"`
-	Channels []string  `json:"channels"`
-}
+	// BotInfo is a struct containing basic information about a bot
+	BotInfo struct {
+		ID       uuid.UUID `json:"id"`
+		Channels []string  `json:"channels"`
+	}
+)
 
+// New creates a new service using a logger
 func New(logger *zap.Logger) Service {
 	return &service{
 		logger:   logger,
@@ -61,8 +67,36 @@ func New(logger *zap.Logger) Service {
 	}
 }
 
-// TODO: How do we make this horizontally scalable?
-// TODO: Rebalancing
+// DanglingChannels returns the channels which have no bots assigned to them
+func (s *service) DanglingChannels() []string {
+	channels := make([]string, 0, len(s.channels))
+	for ch, bots := range s.channels {
+		if len(bots) == 0 {
+			channels = append(channels, ch)
+		}
+	}
+	return channels
+}
+
+// distributeDanglingChannels distributes channels with no bots assigned to bots
+func (s *service) distributeDanglingChannels() {
+	danglingChannels := s.DanglingChannels()
+	if len(danglingChannels) == 0 || len(s.bots) == 0 {
+		return
+	}
+	s.logger.Info("distributing dangling channels")
+
+	bots := s.allBots()
+	for _, channel := range danglingChannels {
+		// Find the bot with the least amount of channels
+		sort.Sort(channelSort(bots))
+		bot := bots[0]
+		bot.JoinChannel(channel)
+		s.channels[channel] = []uuid.UUID{bot.id}
+	}
+}
+
+// Join connects a bot to the orchestrator to be controlled
 func (s *service) Join(ctx context.Context, botClient proto.BotClient) (context.Context, uuid.UUID) {
 	id := uuid.New()
 	logger := s.logger.With(zap.String("bot_id", id.String()))
@@ -77,16 +111,29 @@ func (s *service) Join(ctx context.Context, botClient proto.BotClient) (context.
 		cancelFunc: cancelFunc,
 		channels:   make(map[string]struct{}),
 	}
+	s.distributeDanglingChannels()
 	defer logger.Info("bot joined")
 	return ctx, id
 }
 
-// TODO: Need to rebalance channels to another bot, or remove from map if no bots remain
+// Leave removes  a bot from the orchestrator
 func (s *service) Leave(id uuid.UUID) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	logger := s.logger.With(zap.String("bot_id", id.String()))
+	deletedBot := s.bots[id]
 	delete(s.bots, id)
+	// Delete channel references to this bot
+	for ch := range deletedBot.channels {
+		newChannelIDs := make([]uuid.UUID, 0, len(s.channels[ch])-1)
+		for _, old := range s.channels[ch] {
+			if old != id {
+				newChannelIDs = append(newChannelIDs, old)
+			}
+		}
+		s.channels[ch] = newChannelIDs
+	}
+	s.distributeDanglingChannels()
 	logger.Info("bot left")
 }
 
@@ -101,23 +148,21 @@ func (s *service) RemoveBot(id uuid.UUID) error {
 	return nil
 }
 
+// JoinChannel notifies a bot to connect to a channel, assigned to the bot with the least current channels
 // TODO: Come up with a better way to weigh the bots based on message throughput vs just channel count
 // TODO: How do we get this to join on multiple bots to keep high availability?
 func (s *service) JoinChannel(channel string) error {
-	if len(s.bots) == 0 {
-		return ErrNoBots
-	}
-
+	// TODO: mux
 	if _, ok := s.channels[channel]; ok {
 		return ErrInChannel
 	}
 
-	bots := make([]*botState, len(s.bots))
-	i := 0
-	for _, bot := range s.bots {
-		bots[i] = bot
-		i++
+	if len(s.bots) == 0 {
+		s.channels[channel] = make([]uuid.UUID, 0)
+		return nil
 	}
+
+	bots := s.allBots()
 	// Find the bot with the least amount of channels
 	sort.Sort(channelSort(bots))
 	bot := bots[0]
@@ -126,9 +171,19 @@ func (s *service) JoinChannel(channel string) error {
 	return nil
 }
 
+func (s *service) allBots() []*botState {
+	bots := make([]*botState, len(s.bots))
+	i := 0
+	for _, bot := range s.bots {
+		bots[i] = bot
+		i++
+	}
+	return bots
+}
+
+// LeaveChannel notifies any bot connected to a channel to leave & stops tracking it
 func (s *service) LeaveChannel(channel string) error {
 	s.mux.Lock()
-	// TODO: Can we unlock this earlier?
 	defer s.mux.Unlock()
 	botIds, ok := s.channels[channel]
 	if !ok {
@@ -142,10 +197,12 @@ func (s *service) LeaveChannel(channel string) error {
 			err = multierr.Append(err, fmt.Errorf("%s: %w", id, leaveErr))
 		}
 	}
+	delete(s.channels, channel)
 
 	return err
 }
 
+// BotInfo returns some basic info about all connected bots
 func (s *service) BotInfo() []BotInfo {
 	botInfos := make([]BotInfo, 0, len(s.bots))
 	for _, bot := range s.bots {
@@ -154,6 +211,7 @@ func (s *service) BotInfo() []BotInfo {
 	return botInfos
 }
 
+// JoinChannel notifies an individual bot to join a channel
 func (b *botState) JoinChannel(channel string) error {
 	b.mux.Lock()
 	defer b.mux.Unlock()
@@ -163,6 +221,7 @@ func (b *botState) JoinChannel(channel string) error {
 	return b.client.SendJoinChannel(channel)
 }
 
+// LeaveChannel notifies an individual bot to leave a channel
 func (b *botState) LeaveChannel(channel string) error {
 	b.mux.Lock()
 	defer b.mux.Unlock()
@@ -175,6 +234,7 @@ func (b *botState) LeaveChannel(channel string) error {
 	return b.client.SendLeaveChannel(channel)
 }
 
+// BotInfo returns some basic information about an individual bot
 func (b *botState) BotInfo() BotInfo {
 	channels := make([]string, 0, len(b.channels))
 	for ch := range b.channels {
@@ -184,4 +244,9 @@ func (b *botState) BotInfo() BotInfo {
 		ID:       b.id,
 		Channels: channels,
 	}
+}
+
+// ChannelInfo returns information about which bots are connected to each channel
+func (s *service) ChannelInfo() map[string][]uuid.UUID {
+	return s.channels
 }

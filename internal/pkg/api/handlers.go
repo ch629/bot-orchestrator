@@ -7,10 +7,6 @@ import (
 	"net/http"
 )
 
-type errorResponse struct {
-	Error string `json:"error"`
-}
-
 // JoinChannel is the handler to tell a bot to join a channel
 func (s *server) JoinChannel() http.HandlerFunc {
 	type request struct {
@@ -77,8 +73,16 @@ func (s *server) BotInfo() http.HandlerFunc {
 	}
 }
 
+func (s *server) ChannelInfo() http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		chanInfo := s.botService.ChannelInfo()
+		writeJSON(rw, chanInfo, http.StatusOK)
+	}
+}
+
 // writeJSON writes a JSON payload back to the ResponseWriter with a status code
 func writeJSON(rw http.ResponseWriter, payload interface{}, status int) error {
+	rw.Header().Add("Content-Type", "application/json")
 	rw.WriteHeader(status)
 	if err := json.NewEncoder(rw).Encode(payload); err != nil {
 		return err
@@ -87,5 +91,9 @@ func writeJSON(rw http.ResponseWriter, payload interface{}, status int) error {
 }
 
 func writeErr(rw http.ResponseWriter, err error, status int) error {
+	type errorResponse struct {
+		Error string `json:"error"`
+	}
+
 	return writeJSON(rw, errorResponse{err.Error()}, status)
 }
