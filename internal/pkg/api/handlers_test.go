@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/ch629/irc-bot-orchestrator/internal/pkg/bots/mocks"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 )
 
@@ -28,25 +28,25 @@ func Test_ServerJoinChannel(t *testing.T) {
 			},
 			payload: `{"channel": "foo"}`,
 			assertions: func(t *testing.T, resp http.Response) {
-				assert.Equal(t, http.StatusOK, resp.StatusCode)
+				require.Equal(t, http.StatusOK, resp.StatusCode)
 			},
 		},
 		{
 			name:    "Failure: Invalid JSON request",
 			payload: `{`,
 			assertions: func(t *testing.T, resp http.Response) {
-				assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+				require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 				bs, _ := ioutil.ReadAll(resp.Body)
-				assert.JSONEq(t, `{"error":"received json invalid request body: unexpected EOF"}`, string(bs))
+				require.JSONEq(t, `{"error":"received json invalid request body: unexpected EOF"}`, string(bs))
 			},
 		},
 		{
 			name:    "Failure: No channel given in JSON body",
 			payload: `{}`,
 			assertions: func(t *testing.T, resp http.Response) {
-				assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+				require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 				bs, _ := ioutil.ReadAll(resp.Body)
-				assert.JSONEq(t, `{"error":"missing channel in request"}`, string(bs))
+				require.JSONEq(t, `{"error":"missing channel in request"}`, string(bs))
 			},
 		},
 		{
@@ -56,9 +56,9 @@ func Test_ServerJoinChannel(t *testing.T) {
 			},
 			payload: `{"channel": "foo"}`,
 			assertions: func(t *testing.T, resp http.Response) {
-				assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+				require.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 				bs, _ := ioutil.ReadAll(resp.Body)
-				assert.JSONEq(t, `{"error":"failed to join channel: failure"}`, string(bs))
+				require.JSONEq(t, `{"error":"failed to join channel: failure"}`, string(bs))
 			},
 		},
 	}

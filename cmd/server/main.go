@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// grpcurl -plaintext -import-path . -proto orchestrator.proto -d '{}' localhost:8080 Orchestrator/Join
+// grpcurl -plaintext -import-path ./pkg/proto/ -proto orchestrator.proto -d '{}' localhost:8080 Orchestrator/JoinStream
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()

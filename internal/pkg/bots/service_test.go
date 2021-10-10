@@ -6,6 +6,7 @@ import (
 
 	"github.com/ch629/irc-bot-orchestrator/internal/pkg/bots"
 	"github.com/ch629/irc-bot-orchestrator/internal/pkg/proto/mocks"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -95,4 +96,9 @@ func Test_ServiceLeaveMultiple(t *testing.T) {
 	require.Contains(t, botInfo[0].Channels, "bar")
 	require.Contains(t, botInfo[0].Channels, "baz")
 	require.Empty(t, service.DanglingChannels())
+}
+
+func Test_ServiceLeaveMissingBot(t *testing.T) {
+	service := bots.New(zap.NewNop())
+	require.ErrorIs(t, service.Leave(uuid.New()), bots.ErrBotNotExist)
 }
