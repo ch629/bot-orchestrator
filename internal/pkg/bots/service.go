@@ -14,8 +14,11 @@ import (
 )
 
 var (
-	ErrBotNotExist  = errors.New("bot does not exist")
-	ErrInChannel    = errors.New("already in channel")
+	// ErrBotNotExist is returned when a bot is not being tracked by the orchestrator
+	ErrBotNotExist = errors.New("bot does not exist")
+	// ErrInChannel is returned when the orchestrator is already running in a given channel
+	ErrInChannel = errors.New("already in channel")
+	// ErrNotInChannel is returned when the orchestrator is not aware of a channel
 	ErrNotInChannel = errors.New("not in channel")
 )
 
@@ -23,8 +26,8 @@ var (
 type (
 	// Service is an interface for bot related functionality
 	Service interface {
-		Join(ctx context.Context, botClient proto.BotClient) (context.Context, uuid.UUID)
-		Leave(id uuid.UUID)
+		Join(ctx context.Context, id uuid.UUID, botClient proto.BotClient) context.Context
+		Leave(id uuid.UUID) error
 		RemoveBot(id uuid.UUID) error
 		JoinChannel(channel string) error
 		LeaveChannel(channel string) error
@@ -97,8 +100,7 @@ func (s *service) distributeDanglingChannels() {
 }
 
 // Join connects a bot to the orchestrator to be controlled
-func (s *service) Join(ctx context.Context, botClient proto.BotClient) (context.Context, uuid.UUID) {
-	id := uuid.New()
+func (s *service) Join(ctx context.Context, id uuid.UUID, botClient proto.BotClient) context.Context {
 	logger := s.logger.With(zap.String("bot_id", id.String()))
 	s.mux.Lock()
 	defer s.mux.Unlock()
@@ -113,15 +115,19 @@ func (s *service) Join(ctx context.Context, botClient proto.BotClient) (context.
 	}
 	s.distributeDanglingChannels()
 	defer logger.Info("bot joined")
-	return ctx, id
+	return ctx
 }
 
-// Leave removes  a bot from the orchestrator
-func (s *service) Leave(id uuid.UUID) {
+// Leave removes a bot from the orchestrator
+// Returns ErrBotNotExist if the bot doesn't exist
+func (s *service) Leave(id uuid.UUID) error {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	logger := s.logger.With(zap.String("bot_id", id.String()))
-	deletedBot := s.bots[id]
+	deletedBot, ok := s.bots[id]
+	if !ok {
+		return ErrBotNotExist
+	}
 	delete(s.bots, id)
 	// Delete channel references to this bot
 	for ch := range deletedBot.channels {
@@ -135,6 +141,7 @@ func (s *service) Leave(id uuid.UUID) {
 	}
 	s.distributeDanglingChannels()
 	logger.Info("bot left")
+	return nil
 }
 
 // RemoveBot removes a bot from the orchestrator
@@ -149,6 +156,7 @@ func (s *service) RemoveBot(id uuid.UUID) error {
 }
 
 // JoinChannel notifies a bot to connect to a channel, assigned to the bot with the least current channels
+// Returns ErrInChannel if the orchestrator is already in the channel
 // TODO: Come up with a better way to weigh the bots based on message throughput vs just channel count
 // TODO: How do we get this to join on multiple bots to keep high availability?
 func (s *service) JoinChannel(channel string) error {
@@ -182,6 +190,7 @@ func (s *service) allBots() []*botState {
 }
 
 // LeaveChannel notifies any bot connected to a channel to leave & stops tracking it
+// Returns ErrNotInChannel if the bot isn't in the given channel
 func (s *service) LeaveChannel(channel string) error {
 	s.mux.Lock()
 	defer s.mux.Unlock()

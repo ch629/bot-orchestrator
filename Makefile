@@ -4,11 +4,17 @@ proto:
 		pkg/proto/orchestrator.proto
 
 build:
-	go build -o app cmd/main.go
+	go build -o bin/app cmd/server/main.go
 
 
 run: build
-	./app
+	./bin/app
+
+build-client:
+	go build -o bin/client cmd/client/main.go
+
+run-client: build-client
+	./bin/client
 
 generate:
 	go generate ./...

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_channelSort(t *testing.T) {
@@ -25,7 +25,7 @@ func Test_channelSort(t *testing.T) {
 	originalBots := []*botState{botOne, botTwo}
 	sortedBots := []*botState{botOne, botTwo}
 	sort.Sort(channelSort(sortedBots))
-	assert.Equal(t, []*botState{
+	require.Equal(t, []*botState{
 		originalBots[0],
 		originalBots[1],
 	}, []*botState(sortedBots))

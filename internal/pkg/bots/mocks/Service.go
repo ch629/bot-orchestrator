@@ -67,29 +67,20 @@ func (_m *Service) DanglingChannels() []string {
 	return r0
 }
 
-// Join provides a mock function with given fields: ctx, botClient
-func (_m *Service) Join(ctx context.Context, botClient proto.BotClient) (context.Context, uuid.UUID) {
-	ret := _m.Called(ctx, botClient)
+// Join provides a mock function with given fields: ctx, id, botClient
+func (_m *Service) Join(ctx context.Context, id uuid.UUID, botClient proto.BotClient) context.Context {
+	ret := _m.Called(ctx, id, botClient)
 
 	var r0 context.Context
-	if rf, ok := ret.Get(0).(func(context.Context, proto.BotClient) context.Context); ok {
-		r0 = rf(ctx, botClient)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, proto.BotClient) context.Context); ok {
+		r0 = rf(ctx, id, botClient)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(context.Context)
 		}
 	}
 
-	var r1 uuid.UUID
-	if rf, ok := ret.Get(1).(func(context.Context, proto.BotClient) uuid.UUID); ok {
-		r1 = rf(ctx, botClient)
-	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(uuid.UUID)
-		}
-	}
-
-	return r0, r1
+	return r0
 }
 
 // JoinChannel provides a mock function with given fields: channel
@@ -107,8 +98,17 @@ func (_m *Service) JoinChannel(channel string) error {
 }
 
 // Leave provides a mock function with given fields: id
-func (_m *Service) Leave(id uuid.UUID) {
-	_m.Called(id)
+func (_m *Service) Leave(id uuid.UUID) error {
+	ret := _m.Called(id)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(uuid.UUID) error); ok {
+		r0 = rf(id)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // LeaveChannel provides a mock function with given fields: channel
