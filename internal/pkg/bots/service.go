@@ -36,12 +36,12 @@ type (
 		DanglingChannels() []string
 	}
 
-	// TODO: RWMutex on channels?
 	service struct {
 		logger   *zap.Logger
 		bots     map[uuid.UUID]*botState
 		channels map[string][]uuid.UUID
 		mux      sync.Mutex
+		chanMux  sync.RWMutex
 	}
 
 	botState struct {
@@ -130,6 +130,8 @@ func (s *service) Leave(id uuid.UUID) error {
 	}
 	delete(s.bots, id)
 	// Delete channel references to this bot
+	s.chanMux.Lock()
+	defer s.chanMux.Unlock()
 	for ch := range deletedBot.channels {
 		newChannelIDs := make([]uuid.UUID, 0, len(s.channels[ch])-1)
 		for _, old := range s.channels[ch] {
@@ -160,11 +162,15 @@ func (s *service) RemoveBot(id uuid.UUID) error {
 // TODO: Come up with a better way to weigh the bots based on message throughput vs just channel count
 // TODO: How do we get this to join on multiple bots to keep high availability?
 func (s *service) JoinChannel(channel string) error {
-	// TODO: mux
-	if _, ok := s.channels[channel]; ok {
+	s.chanMux.RLock()
+	_, ok := s.channels[channel]
+	s.chanMux.RUnlock()
+	if ok {
 		return ErrInChannel
 	}
 
+	s.chanMux.Lock()
+	defer s.chanMux.Unlock()
 	if len(s.bots) == 0 {
 		s.channels[channel] = make([]uuid.UUID, 0)
 		return nil
@@ -192,12 +198,14 @@ func (s *service) allBots() []*botState {
 // LeaveChannel notifies any bot connected to a channel to leave & stops tracking it
 // Returns ErrNotInChannel if the bot isn't in the given channel
 func (s *service) LeaveChannel(channel string) error {
-	s.mux.Lock()
-	defer s.mux.Unlock()
+	s.chanMux.RLock()
 	botIds, ok := s.channels[channel]
+	s.chanMux.RUnlock()
 	if !ok {
 		return ErrNotInChannel
 	}
+	s.chanMux.Lock()
+	defer s.chanMux.Unlock()
 
 	var err error
 	for _, id := range botIds {
@@ -257,5 +265,7 @@ func (b *botState) BotInfo() BotInfo {
 
 // ChannelInfo returns information about which bots are connected to each channel
 func (s *service) ChannelInfo() map[string][]uuid.UUID {
+	s.chanMux.RLock()
+	defer s.chanMux.RUnlock()
 	return s.channels
 }
