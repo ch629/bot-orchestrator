@@ -7,7 +7,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/ch629/irc-bot-orchestrator/internal/pkg/proto"
+	"github.com/ch629/bot-orchestrator/internal/pkg/proto"
 	"github.com/google/uuid"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"

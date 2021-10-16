@@ -1,4 +1,4 @@
-module github.com/ch629/irc-bot-orchestrator
+module github.com/ch629/bot-orchestrator
 
 go 1.17
 

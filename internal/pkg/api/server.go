@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/ch629/irc-bot-orchestrator/internal/pkg/bots"
+	"github.com/ch629/bot-orchestrator/internal/pkg/bots"
 	"go.uber.org/zap"
 )
 

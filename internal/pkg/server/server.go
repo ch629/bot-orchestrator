@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/ch629/irc-bot-orchestrator/internal/pkg/bots"
-	proto2 "github.com/ch629/irc-bot-orchestrator/internal/pkg/proto"
-	"github.com/ch629/irc-bot-orchestrator/pkg/proto"
+	"github.com/ch629/bot-orchestrator/internal/pkg/bots"
+	proto2 "github.com/ch629/bot-orchestrator/internal/pkg/proto"
+	"github.com/ch629/bot-orchestrator/pkg/proto"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"

@@ -5,7 +5,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ch629/irc-bot-orchestrator/pkg/client"
+	"github.com/ch629/bot-orchestrator/pkg/client"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )

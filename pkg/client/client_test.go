@@ -6,9 +6,9 @@ import (
 	"net"
 	"testing"
 
-	"github.com/ch629/irc-bot-orchestrator/pkg/client"
-	"github.com/ch629/irc-bot-orchestrator/pkg/client/mocks"
-	"github.com/ch629/irc-bot-orchestrator/pkg/proto"
+	"github.com/ch629/bot-orchestrator/pkg/client"
+	"github.com/ch629/bot-orchestrator/pkg/client/mocks"
+	"github.com/ch629/bot-orchestrator/pkg/proto"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"

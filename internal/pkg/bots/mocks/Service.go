@@ -5,11 +5,11 @@ package mocks
 import (
 	context "context"
 
-	bots "github.com/ch629/irc-bot-orchestrator/internal/pkg/bots"
+	bots "github.com/ch629/bot-orchestrator/internal/pkg/bots"
 
 	mock "github.com/stretchr/testify/mock"
 
-	proto "github.com/ch629/irc-bot-orchestrator/internal/pkg/proto"
+	proto "github.com/ch629/bot-orchestrator/internal/pkg/proto"
 
 	uuid "github.com/google/uuid"
 )

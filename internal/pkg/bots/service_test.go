@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ch629/irc-bot-orchestrator/internal/pkg/bots"
-	"github.com/ch629/irc-bot-orchestrator/internal/pkg/proto/mocks"
+	"github.com/ch629/bot-orchestrator/internal/pkg/bots"
+	"github.com/ch629/bot-orchestrator/internal/pkg/proto/mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -16,7 +16,7 @@ func Test_ServiceJoin(t *testing.T) {
 	service := bots.New(zap.NewNop())
 	mockBotClient := &mocks.BotClient{}
 	mockBotClient.On("SendJoinChannel", "foo").Return(nil)
-	service.Join(context.Background(), mockBotClient)
+	service.Join(context.Background(), uuid.New(), mockBotClient)
 	service.JoinChannel("foo")
 	botInfo := service.BotInfo()
 	require.Len(t, botInfo, 1)
@@ -31,7 +31,8 @@ func Test_ServiceDanglingChannels(t *testing.T) {
 	service := bots.New(zap.NewNop())
 	mockBotClient := &mocks.BotClient{}
 	mockBotClient.On("SendJoinChannel", "foo").Return(nil)
-	_, id := service.Join(context.Background(), mockBotClient)
+	id := uuid.New()
+	_ = service.Join(context.Background(), id, mockBotClient)
 	service.JoinChannel("foo")
 
 	// Bot leaves, so we have a channel with no bots assigned
@@ -39,7 +40,7 @@ func Test_ServiceDanglingChannels(t *testing.T) {
 	require.Equal(t, []string{"foo"}, service.DanglingChannels(), "there should be one dangling channel left")
 	require.Contains(t, service.ChannelInfo(), "foo")
 	// New bot joins, so dangling channels should be assigned
-	service.Join(context.Background(), mockBotClient)
+	service.Join(context.Background(), uuid.New(), mockBotClient)
 	require.Empty(t, service.DanglingChannels(), "all dangling channels should be assigned to the new bot")
 	require.Contains(t, service.ChannelInfo(), "foo")
 	mockBotClient.AssertExpectations(t)
@@ -56,7 +57,7 @@ func Test_ServiceJoinChannel(t *testing.T) {
 	require.Contains(t, service.ChannelInfo(), "foo")
 	require.Len(t, service.DanglingChannels(), 1)
 	// All dangling channels should be assigned to the new bot
-	service.Join(context.Background(), mockBotClient)
+	service.Join(context.Background(), uuid.New(), mockBotClient)
 	require.Len(t, service.DanglingChannels(), 0, "all dangling channels should now be assigned")
 	require.Contains(t, service.BotInfo()[0].Channels, "foo")
 }
@@ -66,7 +67,7 @@ func Test_ServiceLeaveChannel(t *testing.T) {
 	mockBotClient := &mocks.BotClient{}
 	mockBotClient.On("SendJoinChannel", "foo").Return(nil)
 	mockBotClient.On("SendLeaveChannel", "foo").Return(nil)
-	service.Join(context.Background(), mockBotClient)
+	service.Join(context.Background(), uuid.New(), mockBotClient)
 	service.JoinChannel("foo")
 	botInfo := service.BotInfo()
 	require.Len(t, botInfo, 1)
@@ -83,8 +84,9 @@ func Test_ServiceLeaveMultiple(t *testing.T) {
 	mockBotClient := &mocks.BotClient{}
 	mockBotClient.On("SendJoinChannel", mock.Anything).Return(nil)
 	mockBotClient.On("SendLeaveChannel", mock.Anything).Return(nil)
-	_, id1 := service.Join(context.Background(), mockBotClient)
-	_, _ = service.Join(context.Background(), mockBotClient)
+	id1 := uuid.New()
+	_ = service.Join(context.Background(), id1, mockBotClient)
+	_ = service.Join(context.Background(), uuid.New(), mockBotClient)
 	service.JoinChannel("foo")
 	service.JoinChannel("bar")
 	service.JoinChannel("baz")

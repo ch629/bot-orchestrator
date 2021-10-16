@@ -5,9 +5,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ch629/irc-bot-orchestrator/internal/pkg/api"
-	"github.com/ch629/irc-bot-orchestrator/internal/pkg/bots"
-	"github.com/ch629/irc-bot-orchestrator/internal/pkg/server"
+	"github.com/ch629/bot-orchestrator/internal/pkg/api"
+	"github.com/ch629/bot-orchestrator/internal/pkg/bots"
+	"github.com/ch629/bot-orchestrator/internal/pkg/server"
 	"go.uber.org/zap"
 )
 

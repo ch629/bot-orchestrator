@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ch629/irc-bot-orchestrator/internal/pkg/bots/mocks"
+	"github.com/ch629/bot-orchestrator/internal/pkg/bots/mocks"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 )

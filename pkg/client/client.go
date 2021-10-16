@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ch629/irc-bot-orchestrator/pkg/proto"
+	"github.com/ch629/bot-orchestrator/pkg/proto"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 )
