@@ -94,7 +94,10 @@ func (s *service) distributeDanglingChannels() {
 		// Find the bot with the least amount of channels
 		sort.Sort(channelSort(bots))
 		bot := bots[0]
-		bot.JoinChannel(channel)
+		if err := bot.JoinChannel(channel); err != nil {
+			s.logger.Warn("failed to join channel", zap.String("channel", channel), zap.Error(err))
+			continue
+		}
 		s.channels[channel] = []uuid.UUID{bot.id}
 	}
 }
@@ -113,8 +116,8 @@ func (s *service) Join(ctx context.Context, id uuid.UUID, botClient proto.BotCli
 		cancelFunc: cancelFunc,
 		channels:   make(map[string]struct{}),
 	}
-	s.distributeDanglingChannels()
-	defer logger.Info("bot joined")
+	go s.distributeDanglingChannels()
+	logger.Info("bot joined")
 	return ctx
 }
 
@@ -180,7 +183,9 @@ func (s *service) JoinChannel(channel string) error {
 	// Find the bot with the least amount of channels
 	sort.Sort(channelSort(bots))
 	bot := bots[0]
-	bot.JoinChannel(channel)
+	if err := bot.JoinChannel(channel); err != nil {
+		return fmt.Errorf("bot.JoinChannel: %w", err)
+	}
 	s.channels[channel] = []uuid.UUID{bot.id}
 	return nil
 }

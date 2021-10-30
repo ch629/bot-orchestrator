@@ -26,7 +26,7 @@ func Join(ctx context.Context, conn *grpc.ClientConn, client OrchestratorClient)
 	grpcClient := proto.NewOrchestratorClient(conn)
 	stream, err := grpcClient.JoinStream(ctx, &proto.EmptyMessage{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to join stream: %w", err)
+		return nil, fmt.Errorf("JoinStream: %w", err)
 	}
 
 	// Get ID from header
@@ -34,14 +34,14 @@ func Join(ctx context.Context, conn *grpc.ClientConn, client OrchestratorClient)
 	{
 		md, err := stream.Header()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Header: %w", err)
 		}
 		id, ok := md["bot_id"]
 		if !ok || len(id) == 0 {
 			return nil, errors.New("no ID provided")
 		}
 		if botID, err = uuid.Parse(id[0]); err != nil {
-			return nil, fmt.Errorf("failed to parse bot_id as UUID: %w", err)
+			return nil, fmt.Errorf("parse bot_id as UUID: %w", err)
 		}
 
 	}

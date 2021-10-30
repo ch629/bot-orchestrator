@@ -56,7 +56,9 @@ func (s *server) JoinStream(_ *proto.EmptyMessage, resp proto.Orchestrator_JoinS
 	ctx := s.botsService.Join(resp.Context(), id, proto2.NewClient(resp))
 
 	defer func() {
-		s.botsService.Leave(id)
+		if err := s.botsService.Leave(id); err != nil {
+			s.logger.Warn("failed to leave", zap.String("bot_id", id.String()), zap.Error(err))
+		}
 	}()
 
 	<-ctx.Done()

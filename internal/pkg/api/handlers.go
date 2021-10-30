@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+
+	"go.uber.org/zap"
 )
 
 // JoinChannel is the handler to tell a bot to join a channel
@@ -69,14 +71,18 @@ func (s *server) LeaveChannel() http.HandlerFunc {
 func (s *server) BotInfo() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		botInfos := s.botService.BotInfo()
-		writeJSON(rw, botInfos, http.StatusOK)
+		if err := writeJSON(rw, botInfos, http.StatusOK); err != nil {
+			s.logger.Error("failed to write JSON", zap.Error(err))
+		}
 	}
 }
 
 func (s *server) ChannelInfo() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		chanInfo := s.botService.ChannelInfo()
-		writeJSON(rw, chanInfo, http.StatusOK)
+		if err := writeJSON(rw, chanInfo, http.StatusOK); err != nil {
+			s.logger.Error("failed to write JSON", zap.Error(err))
+		}
 	}
 }
 
@@ -85,7 +91,7 @@ func writeJSON(rw http.ResponseWriter, payload interface{}, status int) error {
 	rw.Header().Add("Content-Type", "application/json")
 	rw.WriteHeader(status)
 	if err := json.NewEncoder(rw).Encode(payload); err != nil {
-		return err
+		return fmt.Errorf("Encode: %w", err)
 	}
 	return nil
 }

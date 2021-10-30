@@ -2,7 +2,6 @@ package client_test
 
 import (
 	"context"
-	"io"
 	"net"
 	"testing"
 
@@ -23,7 +22,7 @@ type server struct {
 
 func (s *server) JoinStream(_ *proto.EmptyMessage, resp proto.Orchestrator_JoinStreamServer) error {
 	resp.SendHeader(metadata.Pairs("bot_id", uuid.NewString()))
-	return io.EOF
+	return nil
 }
 
 func bufDialer(lis *bufconn.Listener) func(ctx context.Context, addr string) (net.Conn, error) {

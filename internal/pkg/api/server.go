@@ -34,7 +34,9 @@ func (s *server) Start(addr string) error {
 	go func() {
 		<-s.ctx.Done()
 		s.logger.Info("shutting down HTTP server")
-		httpServer.Shutdown(context.Background())
+		if err := httpServer.Shutdown(context.Background()); err != nil {
+			s.logger.Error("failed to shutdown HTTP server", zap.Error(err))
+		}
 	}()
 
 	return httpServer.ListenAndServe()

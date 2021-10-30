@@ -29,7 +29,9 @@ func main() {
 	}()
 	go func() {
 		httpServer := api.New(ctx, logger, botsService)
-		httpServer.Start("localhost:9080")
+		if err := httpServer.Start("localhost:9080"); err != nil {
+			logger.Error("failed to start http server", zap.Error(err))
+		}
 	}()
 	<-ctx.Done()
 }
