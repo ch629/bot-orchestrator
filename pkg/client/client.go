@@ -43,7 +43,6 @@ func Join(ctx context.Context, conn *grpc.ClientConn, client OrchestratorClient)
 		if botID, err = uuid.Parse(id[0]); err != nil {
 			return nil, fmt.Errorf("parse bot_id as UUID: %w", err)
 		}
-
 	}
 
 	go func() {

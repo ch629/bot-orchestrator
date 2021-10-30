@@ -4,12 +4,12 @@ import (
 	"context"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/ch629/bot-orchestrator/pkg/client"
 	"github.com/ch629/bot-orchestrator/pkg/client/mocks"
 	"github.com/ch629/bot-orchestrator/pkg/proto"
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -31,21 +31,25 @@ func bufDialer(lis *bufconn.Listener) func(ctx context.Context, addr string) (ne
 	}
 }
 
+// TODO: Test receiving join & leave messages
 func TestJoin(t *testing.T) {
 	lis := bufconn.Listen(1024 * 1024)
 	s := grpc.NewServer()
 	proto.RegisterOrchestratorServer(s, &server{})
-	go func() {
-		err := s.Serve(lis)
-		require.NoError(t, err)
-	}()
+	go s.Serve(lis)
 	conn, err := grpc.DialContext(context.Background(), "bufnet", grpc.WithContextDialer(bufDialer(lis)), grpc.WithInsecure())
 	require.NoError(t, err)
 	defer conn.Close()
 
 	mockOrchestratorClient := &mocks.OrchestratorClient{}
-	mockOrchestratorClient.On("JoinChannel", mock.Anything)
-	mockOrchestratorClient.On("LeaveChannel", mock.Anything)
+	mockOrchestratorClient.On("Close")
 
-	client.Join(context.Background(), conn, mockOrchestratorClient)
+	ctx, cancel := context.WithCancel(context.Background())
+	_, err = client.Join(ctx, conn, mockOrchestratorClient)
+	require.NoError(t, err)
+	cancel()
+	lis.Close()
+	// Have to wait until the goroutine closes
+	time.Sleep(10 * time.Millisecond)
+	mockOrchestratorClient.AssertExpectations(t)
 }

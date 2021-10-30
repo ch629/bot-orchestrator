@@ -116,7 +116,8 @@ func (s *service) Join(ctx context.Context, id uuid.UUID, botClient proto.BotCli
 		cancelFunc: cancelFunc,
 		channels:   make(map[string]struct{}),
 	}
-	go s.distributeDanglingChannels()
+	// TODO: Should this be async? -> Breaks tests if it is
+	s.distributeDanglingChannels()
 	logger.Info("bot joined")
 	return ctx
 }
