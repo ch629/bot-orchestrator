@@ -9,7 +9,7 @@ type BotClient interface {
 	SendLeaveChannel(channel string) error
 }
 
-// NewClient builds a new BotClient using a protobuf stream
+// NewClient builds a new BotClient using a gRPC stream
 func NewClient(stream proto.Orchestrator_JoinStreamServer) BotClient {
 	return &botClient{
 		stream: stream,

@@ -68,15 +68,15 @@ func (_m *Service) DanglingChannels() []string {
 }
 
 // Join provides a mock function with given fields: ctx, id, botClient
-func (_m *Service) Join(ctx context.Context, id uuid.UUID, botClient proto.BotClient) context.Context {
+func (_m *Service) Join(ctx context.Context, id uuid.UUID, botClient proto.BotClient) <-chan struct{} {
 	ret := _m.Called(ctx, id, botClient)
 
-	var r0 context.Context
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, proto.BotClient) context.Context); ok {
+	var r0 <-chan struct{}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, proto.BotClient) <-chan struct{}); ok {
 		r0 = rf(ctx, id, botClient)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(context.Context)
+			r0 = ret.Get(0).(<-chan struct{})
 		}
 	}
 

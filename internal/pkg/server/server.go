@@ -52,8 +52,7 @@ func (s *server) JoinStream(_ *proto.EmptyMessage, resp proto.Orchestrator_JoinS
 	if err := resp.SendHeader(metadata.Pairs("bot_id", id.String())); err != nil {
 		return fmt.Errorf("failed to set bot_id header: %w", err)
 	}
-	// TODO: Return a chan instead of context
-	ctx := s.botsService.Join(resp.Context(), id, proto2.NewClient(resp))
+	done := s.botsService.Join(resp.Context(), id, proto2.NewClient(resp))
 
 	defer func() {
 		if err := s.botsService.Leave(id); err != nil {
@@ -61,6 +60,6 @@ func (s *server) JoinStream(_ *proto.EmptyMessage, resp proto.Orchestrator_JoinS
 		}
 	}()
 
-	<-ctx.Done()
+	<-done
 	return nil
 }
