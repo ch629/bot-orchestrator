@@ -23,13 +23,13 @@ func main() {
 	botsService := bots.New(logger)
 	logger.Info("starting gRPC server")
 	go func() {
-		if err := server.New(logger, botsService).Start(ctx, 8080); err != nil {
+		if err := server.New(botsService).Start(ctx, 8080); err != nil {
 			logger.Fatal("failed to start gRPC server", zap.Error(err))
 		}
 	}()
 	go func() {
-		httpServer := api.New(ctx, logger, botsService)
-		if err := httpServer.Start("localhost:9080"); err != nil {
+		httpServer := api.New(botsService)
+		if err := httpServer.Start(ctx, "localhost:9080"); err != nil {
 			logger.Error("failed to start http server", zap.Error(err))
 		}
 	}()

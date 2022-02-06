@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -11,7 +10,6 @@ import (
 
 	"github.com/ch629/bot-orchestrator/internal/pkg/bots/mocks"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
 )
 
 func Test_ServerJoinChannel(t *testing.T) {
@@ -71,7 +69,7 @@ func Test_ServerJoinChannel(t *testing.T) {
 			if tt.setupMocks != nil {
 				tt.setupMocks(mockBotsService)
 			}
-			server := New(context.Background(), zaptest.NewLogger(t), mockBotsService)
+			server := New(mockBotsService)
 			server.JoinChannel().ServeHTTP(rw, req)
 
 			res := rw.Result()

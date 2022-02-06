@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/ch629/bot-orchestrator/internal/pkg/log"
 	"go.uber.org/zap"
 )
 
@@ -72,7 +73,7 @@ func (s *server) BotInfo() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		botInfos := s.botService.BotInfo()
 		if err := writeJSON(rw, botInfos, http.StatusOK); err != nil {
-			s.logger.Error("failed to write JSON", zap.Error(err))
+			log.Error("failed to write JSON", zap.Error(err))
 		}
 	}
 }
@@ -81,7 +82,7 @@ func (s *server) ChannelInfo() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		chanInfo := s.botService.ChannelInfo()
 		if err := writeJSON(rw, chanInfo, http.StatusOK); err != nil {
-			s.logger.Error("failed to write JSON", zap.Error(err))
+			log.Error("failed to write JSON", zap.Error(err))
 		}
 	}
 }

@@ -5,25 +5,22 @@ import (
 	"net/http"
 
 	"github.com/ch629/bot-orchestrator/internal/pkg/bots"
+	"github.com/ch629/bot-orchestrator/internal/pkg/log"
 	"go.uber.org/zap"
 )
 
 type server struct {
-	ctx        context.Context
-	logger     *zap.Logger
 	botService bots.Service
 }
 
-func New(ctx context.Context, logger *zap.Logger, botService bots.Service) *server {
+func New(botService bots.Service) *server {
 	return &server{
-		ctx:        ctx,
-		logger:     logger,
 		botService: botService,
 	}
 }
 
-func (s *server) Start(addr string) error {
-	s.logger.Info("starting HTTP server", zap.String("addr", addr))
+func (s *server) Start(ctx context.Context, addr string) error {
+	log.Info("starting HTTP server", zap.String("addr", addr))
 	router := s.createRoutes()
 	httpServer := http.Server{
 		Addr:    addr,
@@ -32,10 +29,10 @@ func (s *server) Start(addr string) error {
 
 	// TODO: Shut this down somewhere else?
 	go func() {
-		<-s.ctx.Done()
-		s.logger.Info("shutting down HTTP server")
+		<-ctx.Done()
+		log.Info("shutting down HTTP server")
 		if err := httpServer.Shutdown(context.Background()); err != nil {
-			s.logger.Error("failed to shutdown HTTP server", zap.Error(err))
+			log.Error("failed to shutdown HTTP server", zap.Error(err))
 		}
 	}()
 

@@ -4,14 +4,13 @@ proto:
 		pkg/proto/orchestrator.proto
 
 build:
-	go build -o bin/app cmd/server/main.go
-
+	CGO_ENABLED=0 go build -o bin/app cmd/server/main.go
 
 run: build
 	./bin/app
 
 build-client:
-	go build -o bin/client cmd/client/main.go
+	CGO_ENABLED=0 go build -o bin/client cmd/client/main.go
 
 run-client: build-client
 	./bin/client
@@ -20,4 +19,4 @@ generate:
 	go generate ./...
 
 test:
-	go test ./...
+	CGO_ENABLED=0 go test ./...

@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"github.com/ch629/bot-orchestrator/internal/pkg/bots"
+	"github.com/ch629/bot-orchestrator/internal/pkg/log"
 	proto2 "github.com/ch629/bot-orchestrator/internal/pkg/proto"
 	"github.com/ch629/bot-orchestrator/pkg/proto"
 	"github.com/google/uuid"
@@ -14,9 +15,8 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-func New(logger *zap.Logger, botsService bots.Service) *server {
+func New(botsService bots.Service) *server {
 	return &server{
-		logger:      logger,
 		botsService: botsService,
 	}
 }
@@ -30,7 +30,8 @@ func (s *server) Start(ctx context.Context, port int) error {
 
 	go func() {
 		<-ctx.Done()
-		s.logger.Info("stopping gRPC server")
+		log.Info("stopping gRPC server")
+
 		grpcServer.GracefulStop()
 	}()
 
@@ -40,14 +41,12 @@ func (s *server) Start(ctx context.Context, port int) error {
 
 type server struct {
 	botsService bots.Service
-	logger      *zap.Logger
 
 	proto.UnimplementedOrchestratorServer
 }
 
 // TODO: Should this be bidirectional, so the bots can send metrics back to us?
 func (s *server) JoinStream(_ *proto.EmptyMessage, resp proto.Orchestrator_JoinStreamServer) error {
-	// TODO: Should this ID be passed in the request instead? -> or could generate it inside of the botsService, but then have another func to notify ready?
 	id := uuid.New()
 	if err := resp.SendHeader(metadata.Pairs("bot_id", id.String())); err != nil {
 		return fmt.Errorf("failed to set bot_id header: %w", err)
@@ -56,7 +55,7 @@ func (s *server) JoinStream(_ *proto.EmptyMessage, resp proto.Orchestrator_JoinS
 
 	defer func() {
 		if err := s.botsService.Leave(id); err != nil {
-			s.logger.Warn("failed to leave", zap.String("bot_id", id.String()), zap.Error(err))
+			log.Warn("failed to leave", zap.String("bot_id", id.String()), zap.Error(err))
 		}
 	}()
 

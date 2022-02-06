@@ -7,6 +7,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/ch629/bot-orchestrator/internal/pkg/log"
 	"github.com/ch629/bot-orchestrator/internal/pkg/proto"
 	"github.com/google/uuid"
 	"go.uber.org/multierr"
@@ -16,8 +17,10 @@ import (
 var (
 	// ErrBotNotExist is returned when a bot is not being tracked by the orchestrator
 	ErrBotNotExist = errors.New("bot does not exist")
+
 	// ErrInChannel is returned when the orchestrator is already running in a given channel
 	ErrInChannel = errors.New("already in channel")
+
 	// ErrNotInChannel is returned when the orchestrator is not aware of a channel
 	ErrNotInChannel = errors.New("not in channel")
 )
@@ -37,8 +40,6 @@ type (
 	}
 
 	service struct {
-		logger *zap.Logger
-
 		bots   map[uuid.UUID]Bot
 		botMux sync.Mutex
 
@@ -50,7 +51,6 @@ type (
 // New creates a new service using a logger
 func New(logger *zap.Logger) Service {
 	return &service{
-		logger:   logger,
 		bots:     make(map[uuid.UUID]Bot),
 		channels: make(map[string][]uuid.UUID),
 	}
@@ -73,15 +73,15 @@ func (s *service) distributeDanglingChannels() {
 	if len(danglingChannels) == 0 || len(s.bots) == 0 {
 		return
 	}
-	s.logger.Info("distributing dangling channels")
+	log.Info("distributing dangling channels")
 
 	bots := s.allBots()
 	for _, channel := range danglingChannels {
 		// Find the bot with the least amount of channels
-		sort.Sort(channelSort(bots))
+		sort.Sort(sortByChannelLen(bots))
 		bot := bots[0]
 		if err := bot.JoinChannel(channel); err != nil {
-			s.logger.Warn("failed to join channel",
+			log.Warn("failed to join channel",
 				zap.String("channel", channel),
 				zap.Stringer("bot_id", bot.ID()),
 				zap.Error(err),
@@ -96,11 +96,11 @@ func (s *service) distributeDanglingChannels() {
 func (s *service) Join(ctx context.Context, id uuid.UUID, botClient proto.BotClient) <-chan struct{} {
 	s.botMux.Lock()
 	defer s.botMux.Unlock()
-	bot := NewBot(ctx, s.logger, id, botClient)
+	bot := NewBot(ctx, id, botClient)
 	s.bots[id] = bot
 	// TODO: Should this be async? -> Breaks tests if it is
 	s.distributeDanglingChannels()
-	s.logger.Info("bot joined", zap.Stringer("bot_id", id))
+	log.Info("bot joined", zap.Stringer("bot_id", id))
 	return bot.Done()
 }
 
@@ -127,7 +127,7 @@ func (s *service) Leave(id uuid.UUID) error {
 		s.channels[ch] = newChannelIDs
 	}
 	s.distributeDanglingChannels()
-	s.logger.Info("bot left", zap.Stringer("bot_id", id))
+	log.Info("bot left", zap.Stringer("bot_id", id))
 	return nil
 }
 
@@ -146,15 +146,12 @@ func (s *service) RemoveBot(id uuid.UUID) error {
 // TODO: Come up with a better way to weigh the bots based on message throughput vs just channel count
 // TODO: How do we get this to join on multiple bots to keep high availability?
 func (s *service) JoinChannel(channel string) error {
-	s.chanMux.RLock()
-	_, ok := s.channels[channel]
-	s.chanMux.RUnlock()
-	if ok {
+	s.chanMux.Lock()
+	defer s.chanMux.Unlock()
+	if _, ok := s.channels[channel]; ok {
 		return ErrInChannel
 	}
 
-	s.chanMux.Lock()
-	defer s.chanMux.Unlock()
 	if len(s.bots) == 0 {
 		s.channels[channel] = make([]uuid.UUID, 0)
 		return nil
@@ -162,7 +159,7 @@ func (s *service) JoinChannel(channel string) error {
 
 	bots := s.allBots()
 	// Find the bot with the least amount of channels
-	sort.Sort(channelSort(bots))
+	sort.Sort(sortByChannelLen(bots))
 	bot := bots[0]
 	if err := bot.JoinChannel(channel); err != nil {
 		return fmt.Errorf("bot.JoinChannel: %w", err)

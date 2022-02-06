@@ -1,15 +1,15 @@
 package bots
 
-type channelSort []Bot
+type sortByChannelLen []Bot
 
-func (b channelSort) Len() int {
+func (b sortByChannelLen) Len() int {
 	return len(b)
 }
 
-func (b channelSort) Swap(i, j int) {
+func (b sortByChannelLen) Swap(i, j int) {
 	b[i], b[j] = b[j], b[i]
 }
 
-func (b channelSort) Less(i, j int) bool {
+func (b sortByChannelLen) Less(i, j int) bool {
 	return len(b[i].Channels()) < len(b[j].Channels())
 }

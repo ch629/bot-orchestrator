@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/ch629/bot-orchestrator/internal/pkg/log"
 	"github.com/ch629/bot-orchestrator/internal/pkg/proto"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -24,10 +25,10 @@ type bot struct {
 }
 
 // TODO: Move this to another package?
-func NewBot(ctx context.Context, logger *zap.Logger, id uuid.UUID, botClient proto.BotClient) Bot {
+func NewBot(ctx context.Context, id uuid.UUID, botClient proto.BotClient) Bot {
 	ctx, cancelFunc := context.WithCancel(ctx)
 	return &bot{
-		logger:     logger.With(zap.Stringer("bot_id", id)),
+		logger:     log.With(zap.Stringer("bot_id", id)),
 		client:     botClient,
 		id:         id,
 		ctx:        ctx,
@@ -61,7 +62,7 @@ func (b *bot) LeaveChannel(channel string) error {
 	return b.client.SendLeaveChannel(channel)
 }
 
-// BotInfo returns some basic information about an individual bot
+// Info returns some basic information about an individual bot
 func (b *bot) Info() BotInfo {
 	return BotInfo{
 		ID:       b.ID(),
@@ -72,7 +73,6 @@ func (b *bot) Info() BotInfo {
 // Channels returns all of the channel the bot is in
 func (b *bot) Channels() []string {
 	b.channelOnce.Do(func() {
-		// TODO: mutex?
 		b.channelSlice = make([]string, 0, len(b.channels))
 		for ch := range b.channels {
 			b.channelSlice = append(b.channelSlice, ch)

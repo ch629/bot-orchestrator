@@ -20,7 +20,7 @@ func Test_channelSort(t *testing.T) {
 		},
 	}
 	sortedBots := []Bot{botTwo, botOne}
-	sort.Sort(channelSort(sortedBots))
+	sort.Sort(sortByChannelLen(sortedBots))
 	require.Equal(t, []Bot{
 		botOne,
 		botTwo,

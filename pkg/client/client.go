@@ -20,8 +20,8 @@ type OrchestratorClient interface {
 }
 
 // Join joins a bot to the orchestrator
+// To close the connection, cancel the context
 // TODO: Call opts?
-// TODO: Check that cancelling the ctx closes the bot connection properly
 func Join(ctx context.Context, conn *grpc.ClientConn, client OrchestratorClient) (*uuid.UUID, error) {
 	grpcClient := proto.NewOrchestratorClient(conn)
 	stream, err := grpcClient.JoinStream(ctx, &proto.EmptyMessage{})
@@ -34,14 +34,14 @@ func Join(ctx context.Context, conn *grpc.ClientConn, client OrchestratorClient)
 	{
 		md, err := stream.Header()
 		if err != nil {
-			return nil, fmt.Errorf("Header: %w", err)
+			return nil, fmt.Errorf("no header received from server: %w", err)
 		}
 		id, ok := md["bot_id"]
 		if !ok || len(id) == 0 {
-			return nil, errors.New("no ID provided")
+			return nil, errors.New("no ID provided by server")
 		}
 		if botID, err = uuid.Parse(id[0]); err != nil {
-			return nil, fmt.Errorf("parse bot_id as UUID: %w", err)
+			return nil, fmt.Errorf("received invalid bot_id from server: %w", err)
 		}
 	}
 
